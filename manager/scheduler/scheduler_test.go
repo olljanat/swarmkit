@@ -3262,3 +3262,103 @@ func TestSchedulerHostPort(t *testing.T) {
 	failure := watchAssignmentFailure(t, watch)
 	assert.Equal(t, "no suitable node (host-mode port already in use on 2 nodes)", failure.Status.Err)
 }
+
+func TestSchedulerMaxReplicas(t *testing.T) {
+	ctx := context.Background()
+	initialNodeSet := []*api.Node{
+		{
+			ID: "id1",
+			Status: api.NodeStatus{
+				State: api.NodeStatus_READY,
+			},
+			Spec: api.NodeSpec{
+				Annotations: api.Annotations{
+					Labels: map[string]string{
+						"datacenter": "1",
+					},
+				},
+			},
+		},
+		{
+			ID: "id2",
+			Status: api.NodeStatus{
+				State: api.NodeStatus_READY,
+			},
+			Spec: api.NodeSpec{
+				Annotations: api.Annotations{
+					Labels: map[string]string{
+						"datacenter": "2",
+					},
+				},
+			},
+		},
+	}
+
+	taskTemplate1 := &api.Task{
+		DesiredState: api.TaskStateRunning,
+		ServiceID:    "service1",
+		Spec: api.TaskSpec{
+			Runtime: &api.TaskSpec_Container{
+				Container: &api.ContainerSpec{
+					Image: "v:1",
+				},
+			},
+			Placement: &api.Placement{
+				Preferences: []*api.PlacementPreference{
+					{
+						Preference: &api.PlacementPreference_Spread{
+							Spread: &api.SpreadOver{
+								SpreadDescriptor: "node.labels.datacenter",
+							},
+						},
+					},
+				},
+				Maxreplicas: 2,
+			},
+		},
+		Status: api.TaskStatus{
+			State: api.TaskStatePending,
+		},
+	}
+
+	s := store.NewMemoryStore(nil)
+	assert.NotNil(t, s)
+	defer s.Close()
+
+	t1Instances := 8
+
+	err := s.Update(func(tx store.Tx) error {
+		// Prepoulate nodes
+		for _, n := range initialNodeSet {
+			assert.NoError(t, store.CreateNode(tx, n))
+		}
+
+		// Prepopulate tasks from template 1
+		for i := 0; i != t1Instances; i++ {
+			taskTemplate1.ID = fmt.Sprintf("t1id%d", i)
+			assert.NoError(t, store.CreateTask(tx, taskTemplate1))
+		}
+		return nil
+	})
+	assert.NoError(t, err)
+
+	scheduler := New(s)
+
+	watch, cancel := state.Watch(s.WatchQueue(), api.EventUpdateTask{})
+	defer cancel()
+
+	go func() {
+		assert.NoError(t, scheduler.Run(ctx))
+	}()
+	defer scheduler.Stop()
+
+	t1Assignments := make(map[string]int)
+	for i := 0; i != 4; i++ {
+		assignment := watchAssignment(t, watch)
+		t1Assignments[assignment.NodeID]++
+	}
+
+	assert.Len(t, t1Assignments, 2)
+	assert.Equal(t, 2, t1Assignments["id1"])
+	assert.Equal(t, 2, t1Assignments["id2"])
+}

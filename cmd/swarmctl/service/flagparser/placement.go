@@ -1,6 +1,7 @@
 package flagparser
 
 import (
+	"fmt"
 	"github.com/docker/swarmkit/api"
 	"github.com/spf13/pflag"
 )
@@ -15,6 +16,20 @@ func parsePlacement(flags *pflag.FlagSet, spec *api.ServiceSpec) error {
 			spec.Task.Placement = &api.Placement{}
 		}
 		spec.Task.Placement.Constraints = constraints
+	}
+
+	if flags.Changed("replicas-max-per-node") {
+		if spec.GetReplicated() == nil {
+			return fmt.Errorf("--replicas-max-per-node can only be specified in --mode replicated")
+		}
+		maxreplicas, err := flags.GetUint64("replicas-max-per-node")
+		if err != nil {
+			return err
+		}
+		if spec.Task.Placement == nil {
+			spec.Task.Placement = &api.Placement{}
+		}
+		spec.Task.Placement.Maxreplicas = maxreplicas
 	}
 
 	return nil
