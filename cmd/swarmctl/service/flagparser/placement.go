@@ -22,14 +22,14 @@ func parsePlacement(flags *pflag.FlagSet, spec *api.ServiceSpec) error {
 		if spec.GetReplicated() == nil {
 			return fmt.Errorf("--replicas-max-per-node can only be specified in --mode replicated")
 		}
-		maxreplicas, err := flags.GetUint64("replicas-max-per-node")
+		max_replicas, err := flags.GetUint64("replicas-max-per-node")
 		if err != nil {
 			return err
 		}
 		if spec.Task.Placement == nil {
 			spec.Task.Placement = &api.Placement{}
 		}
-		spec.Task.Placement.Maxreplicas = maxreplicas
+		spec.Task.Placement.MaxReplicas = max_replicas
 	}
 
 	return nil

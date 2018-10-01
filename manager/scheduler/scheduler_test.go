@@ -3313,7 +3313,7 @@ func TestSchedulerMaxReplicas(t *testing.T) {
 						},
 					},
 				},
-				Maxreplicas: 2,
+				MaxReplicas: 2,
 			},
 		},
 		Status: api.TaskStatus{

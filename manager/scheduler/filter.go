@@ -368,7 +368,7 @@ type MaxReplicasFilter struct {
 // SetTask returns true when max replicas per node filter > 0 for a given task.
 func (f *MaxReplicasFilter) SetTask(t *api.Task) bool {
 	if t.Spec.Placement != nil {
-		if t.Spec.Placement.Maxreplicas > 0 {
+		if t.Spec.Placement.MaxReplicas > 0 {
 			f.t = t
 			return true
 		}
@@ -379,7 +379,7 @@ func (f *MaxReplicasFilter) SetTask(t *api.Task) bool {
 
 // Check returns true if there is free slots for task in a given node.
 func (f *MaxReplicasFilter) Check(n *NodeInfo) bool {
-	if uint64(n.ActiveTasksCountByService[f.t.ServiceID]) < f.t.Spec.Placement.Maxreplicas {
+	if uint64(n.ActiveTasksCountByService[f.t.ServiceID]) < f.t.Spec.Placement.MaxReplicas {
 		return true
 	}
 
