@@ -379,7 +379,7 @@ func (f *MaxReplicasFilter) SetTask(t *api.Task) bool {
 
 // Check returns true if there is free slots for task in a given node.
 func (f *MaxReplicasFilter) Check(n *NodeInfo) bool {
-	if uint64(n.ActiveTasksCountByService[f.t.ServiceID]) < f.t.Spec.Placement.MaxReplicas {
+	if uint64(n.ActiveTasksCountByService[f.t.ServiceID]) < f.t.Spec.Placement.MaxReplicas && f.t.Slot <= f.t.Spec.Placement.MaxReplicas {
 		return true
 	}
 
