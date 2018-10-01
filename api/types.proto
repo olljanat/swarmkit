@@ -863,8 +863,8 @@ message Placement {
 	// then the platform filter is off, meaning there are no scheduling restrictions.
 	repeated Platform platforms = 3;
 
-	// Max replicas specifies limit for maximum number of replicas running on one node.
-	uint64 maxreplicas = 4;
+	// MaxReplicas specifies the limit for maximum number of replicas running on one node.
+	uint64 max_replicas = 4;
 }
 
 // JoinToken contains the join tokens for workers and managers.

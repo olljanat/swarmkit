@@ -788,20 +788,6 @@ file {
       json_name: "phpNamespace"
     }
     field {
-      name: "php_metadata_namespace"
-      number: 44
-      label: LABEL_OPTIONAL
-      type: TYPE_STRING
-      json_name: "phpMetadataNamespace"
-    }
-    field {
-      name: "ruby_package"
-      number: 45
-      label: LABEL_OPTIONAL
-      type: TYPE_STRING
-      json_name: "rubyPackage"
-    }
-    field {
       name: "uninterpreted_option"
       number: 999
       label: LABEL_REPEATED
@@ -3570,11 +3556,11 @@ file {
       json_name: "platforms"
     }
     field {
-      name: "maxreplicas"
+      name: "max_replicas"
       number: 4
       label: LABEL_OPTIONAL
       type: TYPE_UINT64
-      json_name: "maxreplicas"
+      json_name: "maxReplicas"
     }
   }
   message_type {
