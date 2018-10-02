@@ -3265,79 +3265,94 @@ func TestSchedulerHostPort(t *testing.T) {
 
 func TestSchedulerMaxReplicas(t *testing.T) {
 	ctx := context.Background()
-	initialNodeSet := []*api.Node{
-		{
-			ID: "id1",
-			Status: api.NodeStatus{
-				State: api.NodeStatus_READY,
-			},
-			Spec: api.NodeSpec{
-				Annotations: api.Annotations{
-					Labels: map[string]string{
-						"datacenter": "1",
-					},
-				},
+	node1 := &api.Node{
+		ID: "nodeid1",
+		Spec: api.NodeSpec{
+			Annotations: api.Annotations{
+				Name: "node1",
 			},
 		},
-		{
-			ID: "id2",
-			Status: api.NodeStatus{
-				State: api.NodeStatus_READY,
+		Status: api.NodeStatus{
+			State: api.NodeStatus_READY,
+		},
+	}
+	node2 := &api.Node{
+		ID: "nodeid2",
+		Spec: api.NodeSpec{
+			Annotations: api.Annotations{
+				Name: "node2",
 			},
-			Spec: api.NodeSpec{
-				Annotations: api.Annotations{
-					Labels: map[string]string{
-						"datacenter": "2",
-					},
-				},
-			},
+		},
+		Status: api.NodeStatus{
+			State: api.NodeStatus_READY,
 		},
 	}
 
-	taskTemplate1 := &api.Task{
+	task1 := &api.Task{
+		ID:           "id1",
+		ServiceID:    "serviceID1",
 		DesiredState: api.TaskStateRunning,
-		ServiceID:    "service1",
 		Spec: api.TaskSpec{
 			Runtime: &api.TaskSpec_Container{
-				Container: &api.ContainerSpec{
-					Image: "v:1",
-				},
+				Container: &api.ContainerSpec{},
+			},
+		},
+		ServiceAnnotations: api.Annotations{
+			Name: "name1",
+		},
+		Status: api.TaskStatus{
+			State: api.TaskStatePending,
+		},
+	}
+	task2 := &api.Task{
+		ID:           "id2",
+		ServiceID:    "serviceID1",
+		DesiredState: api.TaskStateRunning,
+		Spec: api.TaskSpec{
+			Runtime: &api.TaskSpec_Container{
+				Container: &api.ContainerSpec{},
+			},
+		},
+		ServiceAnnotations: api.Annotations{
+			Name: "name2",
+		},
+		Status: api.TaskStatus{
+			State: api.TaskStatePending,
+		},
+	}
+	task3 := &api.Task{
+		ID:           "id3",
+		ServiceID:    "serviceID1",
+		DesiredState: api.TaskStateRunning,
+		Spec: api.TaskSpec{
+			Runtime: &api.TaskSpec_Container{
+				Container: &api.ContainerSpec{},
 			},
 			Placement: &api.Placement{
-				Preferences: []*api.PlacementPreference{
-					{
-						Preference: &api.PlacementPreference_Spread{
-							Spread: &api.SpreadOver{
-								SpreadDescriptor: "node.labels.datacenter",
-							},
-						},
-					},
-				},
-				MaxReplicas: 2,
+				MaxReplicas: 1,
 			},
+		},
+		ServiceAnnotations: api.Annotations{
+			Name: "name3",
 		},
 		Status: api.TaskStatus{
 			State: api.TaskStatePending,
 		},
 	}
 
+	service1 := &api.Service{
+		ID: "serviceID1",
+	}
+
 	s := store.NewMemoryStore(nil)
 	assert.NotNil(t, s)
 	defer s.Close()
 
-	t1Instances := 8
-
 	err := s.Update(func(tx store.Tx) error {
-		// Prepoulate nodes
-		for _, n := range initialNodeSet {
-			assert.NoError(t, store.CreateNode(tx, n))
-		}
-
-		// Prepopulate tasks from template 1
-		for i := 0; i != t1Instances; i++ {
-			taskTemplate1.ID = fmt.Sprintf("t1id%d", i)
-			assert.NoError(t, store.CreateTask(tx, taskTemplate1))
-		}
+		// Add initial node, service and task
+		assert.NoError(t, store.CreateService(tx, service1))
+		assert.NoError(t, store.CreateTask(tx, task1))
+		assert.NoError(t, store.CreateTask(tx, task2))
 		return nil
 	})
 	assert.NoError(t, err)
@@ -3352,13 +3367,30 @@ func TestSchedulerMaxReplicas(t *testing.T) {
 	}()
 	defer scheduler.Stop()
 
-	t1Assignments := make(map[string]int)
-	for i := 0; i != 4; i++ {
-		assignment := watchAssignment(t, watch)
-		t1Assignments[assignment.NodeID]++
-	}
+	// Tasks shouldn't be scheduled because there are no nodes.
+	watchAssignmentFailure(t, watch)
+	watchAssignmentFailure(t, watch)
 
-	assert.Len(t, t1Assignments, 2)
-	assert.Equal(t, 2, t1Assignments["id1"])
-	assert.Equal(t, 2, t1Assignments["id2"])
+	err = s.Update(func(tx store.Tx) error {
+		// Add initial node and task
+		assert.NoError(t, store.CreateNode(tx, node1))
+		assert.NoError(t, store.CreateNode(tx, node2))
+		return nil
+	})
+	assert.NoError(t, err)
+
+	// Tasks 1 and 2 should be assigned to different nodes.
+	assignment1 := watchAssignment(t, watch)
+	assignment2 := watchAssignment(t, watch)
+	assert.True(t, assignment1 != assignment2)
+
+	// Task 3 should not be schedulable.
+	err = s.Update(func(tx store.Tx) error {
+		assert.NoError(t, store.CreateTask(tx, task3))
+		return nil
+	})
+	assert.NoError(t, err)
+
+	failure := watchAssignmentFailure(t, watch)
+	assert.Equal(t, "max replicas per node limit exceed", failure.Status.Err)
 }

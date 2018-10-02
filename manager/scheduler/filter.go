@@ -377,7 +377,7 @@ func (f *MaxReplicasFilter) SetTask(t *api.Task) bool {
 	return false
 }
 
-// Check returns true if there is free slots for task in a given node.
+// Check returns true if there is less active (assigned or pre-assigned) tasks for this service on current node than set to MaxReplicas limit
 func (f *MaxReplicasFilter) Check(n *NodeInfo) bool {
 	if uint64(n.ActiveTasksCountByService[f.t.ServiceID]) < f.t.Spec.Placement.MaxReplicas {
 		return true
