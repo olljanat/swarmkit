@@ -37,6 +37,14 @@ func ExpandContainerSpec(n *api.NodeDescription, t *api.Task) (*api.ContainerSpe
 	}
 
 	container.Hostname, err = ctx.Expand(container.Hostname)
+
+	var expandedAliases []string
+	for _, alias := range container.Aliases {
+		expanded, _ := ctx.Expand(alias)
+		expandedAliases = append(expandedAliases, expanded)
+	}
+	container.Aliases = expandedAliases
+
 	return container, errors.Wrap(err, "expanding hostname failed")
 }
 

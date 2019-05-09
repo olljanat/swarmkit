@@ -127,6 +127,29 @@ func TestTemplateContext(t *testing.T) {
 			},
 		},
 		{
+			Test: "ContainerAlias",
+			Task: modifyTask(func(t *api.Task) {
+				t.Spec = api.TaskSpec{
+					Runtime: &api.TaskSpec_Container{
+						Container: &api.ContainerSpec{
+							Aliases: []string{
+								"bar-{{.Node.ID}}-{{.Task.Name}}",
+								"foo-{{.Service.ID}}-{{.Service.Name}}",
+							},
+						},
+					},
+				}
+			}),
+			NodeDescription: modifyNode(func(n *api.NodeDescription) {
+			}),
+			Expected: &api.ContainerSpec{
+				Aliases: []string{
+					"bar-nodeID-serviceName.10.taskID",
+					"foo-serviceID-serviceName",
+				},
+			},
+		},
+		{
 			Test: "Hostname",
 			Task: modifyTask(func(t *api.Task) {
 				t.Spec = api.TaskSpec{
