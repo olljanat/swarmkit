@@ -333,6 +333,9 @@ message ContainerSpec {
 	//
 	// https://docs.docker.com/engine/reference/commandline/run/#configure-namespaced-kernel-parameters-sysctls-at-runtime
 	map<string, string> sysctls = 26;
+
+	// Aliases specifies a list of discoverable alternate names for the container on this Target.
+	repeated string aliases = 27;
 }
 
 // EndpointSpec defines the properties that can be configured to
