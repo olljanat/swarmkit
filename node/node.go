@@ -341,6 +341,10 @@ func (n *Node) run(ctx context.Context) (err error) {
 		return err
 	}
 
+	// Avoid task database grow to massive by re-creating it on node start.
+	if _, err := os.Stat(taskDBPath); err == nil {
+		os.Remove(taskDBPath)
+	}
 	db, err := bolt.Open(taskDBPath, 0666, nil)
 	if err != nil {
 		return err
