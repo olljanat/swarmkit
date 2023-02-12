@@ -1,4 +1,4 @@
-package ivmanager
+package l2brmanager
 
 import (
 	"github.com/docker/docker/libnetwork/datastore"
@@ -7,22 +7,22 @@ import (
 	"github.com/docker/docker/libnetwork/types"
 )
 
-const networkType = "ipvlan"
+const networkType = "l2bridge"
 
 type driver struct{}
 
-// Init registers a new instance of the ipvlan manager driver.
+// Init registers a new instance of l2bridge manager driver.
 //
 // Deprecated: use [Register].
 func Init(dc driverapi.DriverCallback, config map[string]interface{}) error {
 	return Register(dc, config)
 }
 
-// Register registers a new instance of the ipvlan manager driver.
+// Register registers a new instance of the l2bridge manager driver with r.
 func Register(r driverapi.Registerer, config map[string]interface{}) error {
 	c := driverapi.Capability{
 		DataScope:         datastore.LocalScope,
-		ConnectivityScope: datastore.GlobalScope,
+		ConnectivityScope: datastore.LocalScope,
 	}
 	return r.RegisterDriver(networkType, &driver{}, c)
 }

@@ -297,8 +297,6 @@ type Info struct {
 	Labels             []string
 	ExperimentalBuild  bool
 	ServerVersion      string
-	ClusterStore       string `json:",omitempty"` // Deprecated: host-discovery and overlay networks with external k/v stores are deprecated
-	ClusterAdvertise   string `json:",omitempty"` // Deprecated: host-discovery and overlay networks with external k/v stores are deprecated
 	Runtimes           map[string]Runtime
 	DefaultRuntime     string
 	Swarm              swarm.Info
@@ -350,20 +348,19 @@ func DecodeSecurityOptions(opts []string) ([]SecurityOpt, error) {
 			continue
 		}
 		secopt := SecurityOpt{}
-		split := strings.Split(opt, ",")
-		for _, s := range split {
-			kv := strings.SplitN(s, "=", 2)
-			if len(kv) != 2 {
+		for _, s := range strings.Split(opt, ",") {
+			k, v, ok := strings.Cut(s, "=")
+			if !ok {
 				return nil, fmt.Errorf("invalid security option %q", s)
 			}
-			if kv[0] == "" || kv[1] == "" {
+			if k == "" || v == "" {
 				return nil, errors.New("invalid empty security option")
 			}
-			if kv[0] == "name" {
-				secopt.Name = kv[1]
+			if k == "name" {
+				secopt.Name = v
 				continue
 			}
-			secopt.Options = append(secopt.Options, KeyValue{Key: kv[0], Value: kv[1]})
+			secopt.Options = append(secopt.Options, KeyValue{Key: k, Value: v})
 		}
 		so = append(so, secopt)
 	}
