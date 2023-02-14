@@ -1,7 +1,6 @@
 package cnmallocator
 
 import (
-	"github.com/docker/docker/libnetwork/datastore"
 	"github.com/docker/docker/libnetwork/discoverapi"
 	"github.com/docker/docker/libnetwork/driverapi"
 	"github.com/docker/docker/libnetwork/types"
@@ -11,17 +10,17 @@ type manager struct {
 	networkType string
 }
 
-func StubManagerInit(networkType string) func(dc driverapi.DriverCallback, config map[string]interface{}) error {
+func StubManagerInit(networkType, dataScope, connectivityScope string) func(dc driverapi.DriverCallback, config map[string]interface{}) error {
 	return func(dc driverapi.DriverCallback, config map[string]interface{}) error {
-		return RegisterManager(dc, networkType)
+		return RegisterManager(dc, networkType, dataScope, connectivityScope)
 	}
 }
 
 // Register registers a new instance of the manager driver for networkType with r.
-func RegisterManager(r driverapi.DriverCallback, networkType string) error {
+func RegisterManager(r driverapi.DriverCallback, networkType, dataScope, connectivityScope string) error {
 	c := driverapi.Capability{
-		DataScope:         datastore.LocalScope,
-		ConnectivityScope: datastore.LocalScope,
+		DataScope:         dataScope,
+		ConnectivityScope: connectivityScope,
 	}
 	return r.RegisterDriver(networkType, &manager{networkType: networkType}, c)
 }

@@ -1,10 +1,7 @@
 package cnmallocator
 
 import (
-	"github.com/docker/docker/libnetwork/drivers/bridge/brmanager"
-	"github.com/docker/docker/libnetwork/drivers/host"
-	"github.com/docker/docker/libnetwork/drivers/ipvlan/ivmanager"
-	"github.com/docker/docker/libnetwork/drivers/macvlan/mvmanager"
+	"github.com/docker/docker/libnetwork/datastore"
 	"github.com/docker/docker/libnetwork/drivers/overlay/ovmanager"
 	"github.com/docker/docker/libnetwork/drivers/remote"
 	"github.com/moby/swarmkit/v2/manager/allocator/networkallocator"
@@ -13,10 +10,10 @@ import (
 var initializers = []initializer{
 	{remote.Init, "remote"},
 	{ovmanager.Init, "overlay"},
-	{mvmanager.Init, "macvlan"},
-	{brmanager.Init, "bridge"},
-	{ivmanager.Init, "ipvlan"},
-	{host.Init, "host"},
+	{StubManagerInit("macvlan", datastore.LocalScope, datastore.GlobalScope), "macvlan"},
+	{StubManagerInit("bridge", datastore.LocalScope, datastore.LocalScope), "bridge"},
+	{StubManagerInit("ipvlan", datastore.LocalScope, datastore.GlobalScope), "ipvlan"},
+	{StubManagerInit("host", datastore.LocalScope, datastore.LocalScope), "host"},
 }
 
 // PredefinedNetworks returns the list of predefined network structures
