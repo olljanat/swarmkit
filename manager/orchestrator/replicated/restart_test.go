@@ -802,4 +802,59 @@ func TestOrchestratorRestartWindow(t *testing.T) {
 	assert.Equal(t, observedTask8.Status.State, api.TaskStateNew)
 	assert.Equal(t, observedTask8.DesiredState, api.TaskStateRunning)
 	assert.Equal(t, observedTask8.ServiceAnnotations.Name, "name1")
+
+	// More more more...
+	// Fail the first instance again. It should not be restarted.
+	updatedTask2 = observedTask8.Copy()
+	updatedTask2.Status = api.TaskStatus{State: api.TaskStateFailed, Timestamp: ptypes.MustTimestampProto(time.Now())}
+	err = s.Update(func(tx store.Tx) error {
+		assert.NoError(t, store.UpdateTask(tx, updatedTask2))
+		return nil
+	})
+	assert.NoError(t, err)
+	testutils.Expect(t, watch, api.EventUpdateTask{})
+	testutils.Expect(t, watch, state.EventCommit{})
+	testutils.Expect(t, watch, api.EventUpdateTask{})
+	testutils.Expect(t, watch, state.EventCommit{})
+
+	select {
+	case <-watch:
+		t.Fatal("got unexpected event")
+	case <-time.After(200 * time.Millisecond):
+	}
+
+	time.Sleep(time.Second)
+
+	// Fail the second instance again. It should get restarted because
+	// enough time has elapsed since the last restarts.
+	updatedTask2 = observedTask5.Copy()
+	updatedTask2.Status = api.TaskStatus{State: api.TaskStateFailed, Timestamp: ptypes.MustTimestampProto(time.Now())}
+	before = time.Now()
+	err = s.Update(func(tx store.Tx) error {
+		assert.NoError(t, store.UpdateTask(tx, updatedTask2))
+		return nil
+	})
+	assert.NoError(t, err)
+	testutils.Expect(t, watch, api.EventUpdateTask{})
+	testutils.Expect(t, watch, state.EventCommit{})
+	testutils.Expect(t, watch, api.EventUpdateTask{})
+
+	observedTask9 := testutils.WatchTaskCreate(t, watch)
+	testutils.Expect(t, watch, state.EventCommit{})
+	assert.Equal(t, observedTask9.Status.State, api.TaskStateNew)
+	assert.Equal(t, observedTask9.DesiredState, api.TaskStateReady)
+
+	observedTask10 := testutils.WatchTaskUpdate(t, watch)
+	after = time.Now()
+
+	// At least 100 ms should have elapsed. Only check the lower bound,
+	// because the system may be slow and it could have taken longer.
+	if after.Sub(before) < 100*time.Millisecond {
+		t.Fatal("restart delay should have elapsed")
+	}
+
+	assert.Equal(t, observedTask10.Status.State, api.TaskStateNew)
+	assert.Equal(t, observedTask10.DesiredState, api.TaskStateRunning)
+	assert.Equal(t, observedTask10.ServiceAnnotations.Name, "name1")
+
 }
