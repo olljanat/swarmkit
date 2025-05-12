@@ -33,9 +33,11 @@ func (f *FakePluginGetter) Get(name, capability string) (plugin.Plugin, error) {
 // GetAllManagedPluginsByCap returns all of the fake's plugins. If capability
 // is anything other than DockerCSIPluginCap, it returns nothing.
 func (f *FakePluginGetter) GetAllManagedPluginsByCap(capability string) []plugin.Plugin {
-	if capability != DockerCSIPluginNodeCap && capability != DockerCSIPluginControllerCap {
-		return nil
-	}
+	/*
+		if capability != DockerCSIPluginNodeCap && capability != DockerCSIPluginControllerCap {
+			return nil
+		}
+	*/
 
 	allPlugins := make([]plugin.Plugin, 0, len(f.Plugins))
 	for _, plug := range f.Plugins {
